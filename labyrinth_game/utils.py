@@ -2,12 +2,15 @@
 from labyrinth_game.constants import ROOMS
 import math
 
-# именованная константа вместо "магического числа"
 EVENT_PROBABILITY = 10  # 1 из 10 шансов для события
+
+# локальный импорт
+from player_actions import get_input
+
 
 def describe_current_room(game_state):
     current_room = game_state['current_room']
-    room_data = ROOMS[current_room]  # Достаем данные этой комнаты
+    room_data = ROOMS[current_room]
 
     print(f"== {current_room.upper()} ==")
     print(room_data['description'])
@@ -24,12 +27,15 @@ def describe_current_room(game_state):
 
 
 def solve_puzzle(game_state):
-    # локальный импорт get_input, чтобы избежать круговых импортов
-    from player_actions import get_input
-
+    """Обрабатывает команду solve - открывает сундук или решает загадку"""
     current_room = game_state['current_room']
     room_data = ROOMS[current_room]
 
+    # 1. Если в комнате есть сундук, открываем его
+    if 'treasure_chest' in room_data.get('items', []):
+        return attempt_open_treasure(game_state)
+
+    # 2. Если сундука нет, проверяем обычную загадку
     if room_data.get('puzzle') is None:
         print("Загадок здесь нет.")
         return
@@ -66,38 +72,46 @@ def solve_puzzle(game_state):
 
 
 def attempt_open_treasure(game_state):
-    # локальный импорт get_input, чтобы избежать круговых импортов
-    from player_actions import get_input
-
+    """Открывает сундук с сокровищами с помощью ключа или кода"""
     current_room = game_state['current_room']
     room_data = ROOMS[current_room]
 
-    # проверяем ключ 'rusty_key' как основной ключ сокровищницы
-    if 'rusty_key' in game_state.get('player_inventory', []):
+    # Проверяем, есть ли вообще сундук в комнате
+    if 'treasure_chest' not in room_data.get('items', []):
+        print("Здесь нечего открывать.")
+        return
+
+    # 1. Проверяем наличие ключа (ИСПРАВЛЕНО ИМЯ!)
+    if 'treasure_key' in game_state.get('player_inventory', []):
         print("Вы применяете ключ, и замок щёлкает. Сундук открыт!")
         try:
-            game_state['player_inventory'].remove('rusty_key')
+            game_state['player_inventory'].remove('treasure_key')
         except ValueError:
             pass
-        if 'treasure_chest' in room_data.get('items', []):
-            room_data['items'].remove('treasure_chest')
+
+        room_data['items'].remove('treasure_chest')
         print("В сундуке сокровище! Вы победили!")
         game_state['game_over'] = True
         return
 
-    answer = get_input("У вас нет ключа, чтобы открыть сундук. Возможно, вам известен код? (да/нет) ").lower()
+    # 2. Если ключа нет, предлагаем ввести код
+    answer = get_input("Сундук заперт. У вас нет ключа. Ввести код? (да/нет) ").lower()
+
     if answer == 'да':
-        game_key = get_input("Отлично! Введи свой код: ")
-        if game_key.lower() == room_data.get('puzzle', ['', ''])[1].lower():
-            if 'treasure_chest' in room_data.get('items', []):
-                room_data['items'].remove('treasure_chest')
-            print("Вы применяете пароль, и замок щёлкает. Сундук открыт!")
+        user_code = get_input("Введите код: ").strip()
+        correct_answer = str(room_data.get('puzzle', ['', ''])[1])
+
+        if user_code.lower() == correct_answer.lower():
+            room_data['items'].remove('treasure_chest')
+            print("Код верный! Сундук открыт!")
             print("В сундуке сокровище! Вы победили!")
             game_state['game_over'] = True
         else:
-            print("Некорректный код. Попробуйте снова.")
+            print("Неверный код.")
+
     elif answer == 'нет':
         print("Вы отступаете от сундука.")
+
     else:
         print("Некорректный ответ. Попробуйте снова.")
 
