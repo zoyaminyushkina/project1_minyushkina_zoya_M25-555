@@ -3,11 +3,11 @@ from labyrinth_game.constants import ROOMS
 
 
 def show_inventory(game_state):
-    if game_state.get('player_inventory'):
-        current_inventory = game_state['player_inventory']
-        print(', '.join(current_inventory))
+    if game_state.get("player_inventory"):
+        current_inventory = game_state["player_inventory"]
+        print(", ".join(current_inventory))
     else:
-        print('Инвентарь в руках отсутствует!')
+        print("Инвентарь в руках отсутствует!")
 
 
 def get_input(prompt="> "):
@@ -23,70 +23,80 @@ def move_player(game_state, direction):
     # локальный импорт, чтобы избежать круговых импортов при загрузке модулей
     from labyrinth_game.utils import random_event
 
-
-    current_room = game_state['current_room']
+    current_room = game_state["current_room"]
     room_data = ROOMS[current_room]
-    actionable_exits = room_data['exits']
+    actionable_exits = room_data["exits"]
 
     # Проверяем, можно ли пойти в выбранном направлении
     if direction in actionable_exits:
         next_room = actionable_exits[direction]
 
         # Проверка: если следующая комната — treasure_room
-        if next_room == 'treasure_room':
+        if next_room == "treasure_room":
             # Проверяем наличие ключа в player_inventory
-            if 'rusty_key' in game_state.get('player_inventory', []):
-                print("Вы используете найденный ключ, чтобы открыть путь в комнату сокровищ.")
-                game_state['current_room'] = next_room
-                game_state['steps_taken'] += 1
+            if "rusty_key" in game_state.get("player_inventory", []):
+                print(
+                    "Вы используете найденный ключ, чтобы открыть путь в комнату сокровищ."
+                )
+                game_state["current_room"] = next_room
+                game_state["steps_taken"] += 1
                 new_room_data = ROOMS[next_room]
-                print(new_room_data['description'])
+                print(new_room_data["description"])
                 random_event(game_state)
             else:
                 print("Дверь заперта. Нужен ключ, чтобы пройти дальше.")
             return  # Выходим из функции, чтобы не выполнять лишние действия
 
         # Обычное перемещение
-        game_state['current_room'] = next_room
-        game_state['steps_taken'] += 1
+        game_state["current_room"] = next_room
+        game_state["steps_taken"] += 1
         new_room_data = ROOMS[next_room]
-        print(new_room_data['description'])
+        print(new_room_data["description"])
         random_event(game_state)
 
     else:
-        print('Нельзя пойти в этом направлении.')
+        print("Нельзя пойти в этом направлении.")
 
 
 def take_item(game_state, item_name):
-    current_room = game_state['current_room']
+    """Позволяет игроку взять предмет из комнаты в инвентарь"""
+    current_room = game_state["current_room"]
     room_data = ROOMS[current_room]
-    actionable_items = room_data.get('items', [])
+    actionable_items = room_data.get("items", [])
+
+    # Проверка на сундук - по заданию 2.4
+    if item_name == "treasure_chest":
+        print("Вы не можете поднять сундук, он слишком тяжелый.")
+        return False
 
     if item_name in actionable_items:
-        game_state.setdefault('player_inventory', []).append(item_name)
-        room_data['items'].remove(item_name)
+        # Добавляем в инвентарь
+        game_state.setdefault("player_inventory", []).append(item_name)
+        # Удаляем из комнаты
+        room_data["items"].remove(item_name)
         print(f"Вы подняли: {item_name}")
-
+        return True
     else:
         print("Такого предмета здесь нет.")
+        return False
 
 
 def use_item(game_state, item_name):
     # Проверяем, есть ли предмет у игрока
-    if item_name not in game_state.get('player_inventory', []):
+    if item_name not in game_state.get("player_inventory", []):
         print("У вас нет такого предмета.")
         return
 
     # Определяем действие в зависимости от предмета
     match item_name:
-        case 'torch':
+        case "torch":
             print("Вы поднимаете факел — стало светлее вокруг.")
-        case 'sword':
+        case "sword":
             print("Вы держите меч в руках — чувствуете уверенность и силу.")
-        case 'bronze_box':
-            if 'rusty_key' not in game_state.get('player_inventory', []):
+        case "bronze_box":
+            if "rusty_key" not in game_state.get("player_inventory", []):
                 print("Вы открыли бронзовую шкатулку и нашли ржавый ключ!")
-                game_state['player_inventory'].append('rusty_key')
+                game_state["player_inventory"].append("rusty_key")
             else:
                 print("В шкатулке пусто.")
         case _:

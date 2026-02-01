@@ -1,8 +1,14 @@
 # main.py
 
-from labyrinth_game.constants import COMMANDS
-from labyrinth_game.utils import describe_current_room, solve_puzzle, attempt_open_treasure, show_help
-from labyrinth_game.player_actions import show_inventory, get_input, move_player, take_item, use_item
+from labyrinth_game.utils import describe_current_room, solve_puzzle, show_help
+from labyrinth_game.player_actions import (
+    show_inventory,
+    get_input,
+    move_player,
+    take_item,
+    use_item,
+)
+
 
 def process_command(game_state, command: str):
     """
@@ -15,6 +21,12 @@ def process_command(game_state, command: str):
 
     action = parts[0].lower()
     arg = parts[1].lower() if len(parts) > 1 else None
+
+    # Поддержка односложных команд движения
+    direction_commands = ["north", "south", "east", "west"]
+    if action in direction_commands:
+        move_player(game_state, action)
+        return
 
     match action:
         case "look":
@@ -42,18 +54,21 @@ def process_command(game_state, command: str):
             show_inventory(game_state)
 
         case "solve":
-            current_room = game_state['current_room']
-            if current_room == 'treasure_room':
+            # Особый случай для treasure_room (п. 2.4 и 3.2)
+            current_room = game_state["current_room"]
+            if current_room == "treasure_room":
+                from labyrinth_game.utils import attempt_open_treasure
+
                 attempt_open_treasure(game_state)
             else:
                 solve_puzzle(game_state)
 
         case "quit" | "exit":
-            game_state['game_over'] = True
+            game_state["game_over"] = True
             print("Вы вышли из игры.")
 
         case "help":
-            show_help(COMMANDS)
+            show_help()
 
         case _:
             print("Неизвестная команда. Напишите 'help' для списка доступных команд.")
@@ -64,15 +79,15 @@ def main():
 
     # Состояние игры
     game_state = {
-        'player_inventory': [],
-        'current_room': 'entrance',
-        'game_over': False,
-        'steps_taken': 0
+        "player_inventory": [],
+        "current_room": "entrance",
+        "game_over": False,
+        "steps_taken": 0,
     }
 
     describe_current_room(game_state)
 
-    while not game_state['game_over']:
+    while not game_state["game_over"]:
         command = get_input("Введите команду: ")
         process_command(game_state, command)
 
