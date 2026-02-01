@@ -1,0 +1,6 @@
+#!C:\Users\alexa\PycharmProjects\project1_minyushkina_zoya_M25-555\.venv\Scripts\python.exe
+import sys
+from labyrinth_game.main import main
+
+if __name__ == '__main__':
+    sys.exit(main())
